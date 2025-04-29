@@ -4257,14 +4257,17 @@ Elements.__namecall = function(Table, Key, ...)
 	return Elements[Key](...)
 end
 
-ElementsTable["Add" .. ElementComponent.__type] = function(self, Idx, Config)
-	Elements["Add" .. ElementComponent.__type] = function(self, Idx, Config)
-		ElementComponent.Container = self.Container
-		ElementComponent.Type = self.Type
-		ElementComponent.ScrollFrame = self.ScrollFrame
-		ElementComponent.Library = Library
+for _, ElementComponent in pairs(ElementsTable) do
+	if type(ElementComponent) == "table" and ElementComponent.__type then
+		Elements["Add" .. ElementComponent.__type] = function(self, Idx, Config)
+			local Component = ElementComponent
+			Component.Container = self.Container
+			Component.Type = self.Type
+			Component.ScrollFrame = self.ScrollFrame
+			Component.Library = Library
 
-		return ElementComponent:New(Idx, Config)
+			return Component:New(Idx, Config)
+		end
 	end
 end
 Library.Elements = ElementsTable
