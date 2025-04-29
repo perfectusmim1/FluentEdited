@@ -1769,6 +1769,7 @@ Components.Notification = (function()
 			TextXAlignment = Enum.TextXAlignment.Left,
 			TextYAlignment = Enum.TextYAlignment.Center,
 			Size = UDim2.new(1, -12, 0, 12),
+BackgroundColor3 = Color3.fromRGB(255, 255, 255),
 						BackgroundTransparency = 1,
 			ThemeTag = {
 				TextColor3 = "Text",
@@ -2812,22 +2813,10 @@ ElementsTable.Dropdown = (function()
 			DropdownDisplay,
 		})
 
-		local ContainerLayout = New("UIListLayout", {
+-- Add this line to create the missing UIListLayout
+		local DropdownListLayout = Creator.New("UIListLayout", {
 			Padding = UDim.new(0, 3),
 		})
-
-				local SearchBoxFrame = New("Frame", {
-			BackgroundTransparency = 1,
-			Size = UDim2.new(1, 0, 0, 32),
-Position = UDim2.new(0, 0, 0, 0),
-			ZIndex = 2,
-		})
-
-		local SearchBox = Components.Textbox(SearchBoxFrame, false)
-		SearchBox.Frame.Size = UDim2.new(1, -8, 1, -8)
-		SearchBox.Frame.Position = UDim2.new(0, 4, 0, 4)
-		SearchBox.Input.PlaceholderText = "Ara..."
-		SearchBox.Input.Text = ""
 
 		local DropdownScrollFrame = New("ScrollingFrame", {
 			Size = UDim2.new(1, -5, 1, -10 - 32), -- 32px arama kutusu yüksekliği
@@ -2844,7 +2833,7 @@ Position = UDim2.new(0, 0, 0, 0),
 			ScrollingDirection = Enum.ScrollingDirection.Y,
 ZIndex = 2,
 		}, {
-			DropdownListLayout,
+			DropdownListLayout, -- Attach the layout here
 		})
 
 		local DropdownHolderFrame = New("Frame", {
@@ -2854,8 +2843,7 @@ ZIndex = 2,
 			},
 ClipsDescendants = true,
 		}, {
-			SearchBoxFrame,
-			DropdownScrollFrame,
+						DropdownScrollFrame,
 			New("UICorner", {
 				CornerRadius = UDim.new(0, 7),
 			}),
@@ -3527,6 +3515,15 @@ ElementsTable.Keybind = (function()
 			return { R = math.floor(Value.r * 255), G = math.floor(Value.g * 255), B = math.floor(Value.b * 255) }
 		end
 
+		local function Update()
+			local Key = Keybind.Value
+			if Keybind.Mode == "Toggle" then
+				KeybindDisplayLabel.Text = Keybind.Toggled and Key .. " (Toggled)" or Key
+			else
+				KeybindDisplayLabel.Text = Key
+			end
+		end
+
 		function Keybind:GetState()
 			if UserInputService:GetFocusedTextBox() and Keybind.Mode ~= "Always" then
 				return false
@@ -3859,9 +3856,11 @@ ElementsTable.Colorpicker = (function()
 
 			local HueDrag = New("ImageLabel", {
 				Size = UDim2.fromOffset(14, 14),
+ScaleType = Enum.ScaleType.Fit,
+				AnchorPoint = Vector2.new(0.5, 0.5),
+				BackgroundTransparency = 1,
 				Image = "http://www.roblox.com/asset/?id=12266946128",
-				Parent = HueDragHolder,
-				ThemeTag = {
+								ThemeTag = {
 					ImageColor3 = "DialogInput",
 				},
 			})
@@ -4258,7 +4257,7 @@ Elements.__namecall = function(Table, Key, ...)
 	return Elements[Key](...)
 end
 
-for _, ElementComponent in pairs(ElementsTable) do
+fElementsTable["Add" .. ElementComponent.__type] = function(self, Idx, Config)
 	Elements["Add" .. ElementComponent.__type] = function(self, Idx, Config)
 		ElementComponent.Container = self.Container
 		ElementComponent.Type = self.Type
@@ -4268,8 +4267,8 @@ for _, ElementComponent in pairs(ElementsTable) do
 		return ElementComponent:New(Idx, Config)
 	end
 end
-
-Library.Elements = Elements
+Library.Elements = ElementsTable
+Library.Elements = ElementsTable
 
 if RunService:IsStudio() then
 	makefolder = function(...) return ... end;
