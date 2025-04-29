@@ -4257,7 +4257,7 @@ Elements.__namecall = function(Table, Key, ...)
 	return Elements[Key](...)
 end
 
-fElementsTable["Add" .. ElementComponent.__type] = function(self, Idx, Config)
+ElementsTable["Add" .. ElementComponent.__type] = function(self, Idx, Config)
 	Elements["Add" .. ElementComponent.__type] = function(self, Idx, Config)
 		ElementComponent.Container = self.Container
 		ElementComponent.Type = self.Type
