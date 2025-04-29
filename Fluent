@@ -1786,7 +1786,7 @@ Components.Notification = (function()
 			Size = UDim2.new(1, -40, 0, 14),
 			Position = UDim2.fromOffset(20, 60),
 			BackgroundTransparency = 1,
-			Parent = NewNotification.Root,
+			Parent = Dialog.Root,
 			ClipsDescendants = false,
 			ThemeTag = {
 				TextColor3 = "Text",
@@ -1803,7 +1803,7 @@ Components.Notification = (function()
 			Size = UDim2.new(1, -40, 0, 14),
 			Position = UDim2.fromOffset(20, 85),
 			BackgroundTransparency = 1,
-			Parent = NewNotification.Root,
+			Parent = Dialog.Root,
 			ClipsDescendants = false,
 			ThemeTag = {
 				TextColor3 = "SubText",
@@ -1834,7 +1834,7 @@ Components.Notification = (function()
 			BackgroundTransparency = 1,
 		}, {
 			New("ImageLabel", {
-				Image = Components.Assets.Close,
+				Image = Components.Close,
 				Size = UDim2.fromOffset(16, 16),
 				Position = UDim2.fromScale(0.5, 0.5),
 				AnchorPoint = Vector2.new(0.5, 0.5),
@@ -2141,7 +2141,7 @@ Components.TitleBar = (function()
 					TextSize = 12,
 					TextXAlignment = "Left",
 					TextYAlignment = "Center",
-					Size = UDim2.new(1, -12, 1, 0),
+					Size = UDim2.fromScale(0, 1),
 					AutomaticSize = Enum.AutomaticSize.X,
 					BackgroundTransparency = 1,
 					ThemeTag = {
@@ -2160,7 +2160,7 @@ Components.TitleBar = (function()
 					TextSize = 12,
 					TextXAlignment = "Left",
 					TextYAlignment = "Center",
-					Size = UDim2.new(1, -12, 1, 0),
+					Size = UDim2.fromScale(0, 1),
 					AutomaticSize = Enum.AutomaticSize.X,
 					BackgroundTransparency = 1,
 					ThemeTag = {
@@ -2196,17 +2196,16 @@ Components.TitleBar = (function()
 			})
 		end)
 		TitleBar.MaxButton = BarButton(Components.Assets.Max, UDim2.new(1, -40, 0, 4), TitleBar.Frame, function()
-			Library.Window.Maximize(not Library.Window.Maximized)
+			Config.Window.Maximize(not Config.Window.Maximized)
 		end)
 		TitleBar.MinButton = BarButton(Components.Assets.Min, UDim2.new(1, -80, 0, 4), TitleBar.Frame, function()
 			Library.Window:Minimize()
-
 		end)
 
 		return TitleBar
 	end
 end)()
-Components.Window = (function()
+Components.Window= (function()
 	local Spring = Flipper.Spring.new
 	local Instant = Flipper.Instant.new
 	local New = Creator.New
@@ -2543,7 +2542,7 @@ Components.Window = (function()
 				TextSize = 14,
 				TextXAlignment = Enum.TextXAlignment.Left,
 				TextYAlignment = Enum.TextYAlignment.Top,
-				Size = UDim2.new(1, -40, 1, 0),
+				Size = UDim2.new(1, -40, 0, 14),
 				Position = UDim2.fromOffset(20, 60),
 				BackgroundTransparency = 1,
 				Parent = Dialog.Root,
@@ -2654,7 +2653,6 @@ ElementsTable.Toggle = (function()
 			Size = UDim2.fromOffset(14, 14),
 			Position = UDim2.new(0, 2, 0.5, 0),
 			Image = "http://www.roblox.com/asset/?id=12266946128",
-			ImageTransparency = 0.5,
 			ThemeTag = {
 				ImageColor3 = "ToggleSlider",
 			},
@@ -2734,6 +2732,8 @@ ElementsTable.Dropdown = (function()
 	Element.__type = "Dropdown"
 
 	function Element:New(Idx, Config)
+		assert(Config.Title, "Dropdown - Missing Title")
+		assert(Config.Values, "Dropdown - Missing Values")
 
 		local Dropdown = {
 			Values = Config.Values,
@@ -2743,6 +2743,7 @@ ElementsTable.Dropdown = (function()
 			Opened = false,
 			Type = "Dropdown",
 			Callback = Config.Callback or function() end,
+			ChangedCallback = Config.ChangedCallback or function(New) end,
 		}
 
 		if Dropdown.Multi and Config.AllowNull then
@@ -2813,6 +2814,18 @@ ElementsTable.Dropdown = (function()
 			Padding = UDim.new(0, 3),
 		})
 
+		-- SEARCH BOX EKLENTİSİ
+		local SearchBoxFrame = New("Frame", {
+			BackgroundTransparency = 1,
+			Size = UDim2.new(1, 0, 0, 32),
+		})
+
+		local SearchBox = Components.Textbox(SearchBoxFrame, false)
+		SearchBox.Frame.Size = UDim2.new(1, -8, 1, -8)
+		SearchBox.Frame.Position = UDim2.new(0, 4, 0, 4)
+		SearchBox.Input.PlaceholderText = "Ara..."
+		SearchBox.Input.Text = ""
+
 		local DropdownScrollFrame = New("ScrollingFrame", {
 			Size = UDim2.new(1, -5, 1, -10),
 			Position = UDim2.fromOffset(5, 5),
@@ -2836,6 +2849,7 @@ ElementsTable.Dropdown = (function()
 				BackgroundColor3 = "DropdownHolder",
 			},
 		}, {
+			SearchBoxFrame, -- SearchBox en üstte
 			DropdownScrollFrame,
 			New("UICorner", {
 				CornerRadius = UDim.new(0, 7),
@@ -2927,6 +2941,9 @@ ElementsTable.Dropdown = (function()
 			Dropdown.Opened = true
 			ScrollFrame.ScrollingEnabled = false
 			DropdownHolderCanvas.Visible = true
+			SearchBox.Input.Text = ""
+			FilterDropdownValues("")
+			Dropdown:BuildDropdownList()
 			TweenService:Create(
 				DropdownHolderFrame,
 				TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out),
@@ -2974,7 +2991,7 @@ ElementsTable.Dropdown = (function()
 		end
 
 		function Dropdown:BuildDropdownList()
-			local Values = Dropdown.Values
+			local Values = FilteredValues[1] and FilteredValues or Dropdown.Values
 			local Buttons = {}
 
 			for _, Element in next, DropdownScrollFrame:GetChildren() do
@@ -3414,8 +3431,7 @@ ElementsTable.Keybind = (function()
 			Toggled = false,
 			Mode = Config.Mode or "Toggle",
 			Type = "Keybind",
-			Callback = Config.Callback or function(Value) end,
-			ChangedCallback = Config.ChangedCallback or function(New) end,
+			Callback = Config.Callback or function(Color) end,
 		}
 
 		local Picking = false
@@ -3433,13 +3449,14 @@ ElementsTable.Keybind = (function()
 			TextColor3 = Color3.fromRGB(240, 240, 240),
 			TextSize = 13,
 			TextXAlignment = Enum.TextXAlignment.Center,
-			Size = UDim2.new(0, 0, 0, 14),
-			Position = UDim2.new(0, 0, 0.5, 0),
-			AnchorPoint = Vector2.new(0, 0.5),
+			TextYAlignment = Enum.TextYAlignment.Center,
 			BackgroundColor3 = Color3.fromRGB(255, 255, 255),
 			AutomaticSize = Enum.AutomaticSize.X,
 			BackgroundTransparency = 1,
-				ThemeTag = {
+			Size = UDim2.fromScale(1, 1),
+			Position = UDim2.fromOffset(0, 0),
+			AnchorPoint = Vector2.new(0, 0.5),
+			ThemeTag = {
 				TextColor3 = "Text",
 			},
 		})
@@ -3450,7 +3467,6 @@ ElementsTable.Keybind = (function()
 			AnchorPoint = Vector2.new(1, 0.5),
 			BackgroundTransparency = 0.9,
 			Parent = KeybindFrame.Frame,
-			AutomaticSize = Enum.AutomaticSize.X,
 			ThemeTag = {
 				BackgroundColor3 = "Keybind",
 			},
@@ -3687,6 +3703,7 @@ ElementsTable.Colorpicker = (function()
 					TextColor3 = Color3.fromRGB(240, 240, 240),
 					TextSize = 13,
 					TextXAlignment = Enum.TextXAlignment.Left,
+					TextYAlignment = Enum.TextYAlignment.Center,
 					Size = UDim2.new(1, 0, 0, 32),
 					Position = Pos,
 					BackgroundTransparency = 1,
@@ -3832,6 +3849,18 @@ ElementsTable.Colorpicker = (function()
 
 			local GreenInput = CreateInput()
 			GreenInput.Frame.Position = UDim2.fromOffset(Config.Transparency and 260 or 240, 135)
+			--[[
+			-- Buraya dikkat
+			-- Dropdown açıldığında arama kutusunu sıfırla ve tüm değerleri göster
+			-- ]]
+			SearchBox.Input.Text = ""
+			FilterDropdownValues("")
+			Dropdown:BuildDropdownList()
+			--[[
+			-- Buraya dikkat
+			-- Dropdown açıldığında arama kutusunu sıfırla ve tüm değerleri göster
+			-- ]]
+
 			CreateInputLabel("Green", UDim2.fromOffset(Config.Transparency and 360 or 340, 135))
 
 			local BlueInput = CreateInput()
@@ -4232,7 +4261,7 @@ local SaveManager = {} do
 	SaveManager.Parser = {
 		Toggle = {
 			Save = function(idx, object) 
-				return { type = "Toggle", idx = idx, value = object.Value } 
+return { type = "Toggle", idx = idx, value = object.Value } 
 			end,
 			Load = function(idx, data)
 				if SaveManager.Options[idx] then 
